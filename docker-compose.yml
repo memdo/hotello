@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  gateway:
+    build: ./services/gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - HOTEL_SERVICE_URL=http://hotel-service:3001
+      - COMMENTS_SERVICE_URL=http://comments-service:3002
+      - NOTIFICATION_SERVICE_URL=http://notification-worker:3003
+      - AGENT_SERVICE_URL=http://agent-service:3004
+      - REDIS_URL=${REDIS_URL}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    depends_on:
+      - hotel-service
+      - comments-service
+      - notification-worker
+      - agent-service
+
+  hotel-service:
+    build: ./services/hotel-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - REDIS_URL=${REDIS_URL}
+      - CLOUDAMQP_URL=${CLOUDAMQP_URL}
+
+  comments-service:
+    build: ./services/comments-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=${REDIS_URL}
+
+  notification-worker:
+    build: ./services/notification-worker
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - CLOUDAMQP_URL=${CLOUDAMQP_URL}
+      - CRON_SECRET=${CRON_SECRET}
+
+  agent-service:
+    build: ./services/agent-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - GATEWAY_URL=http://gateway:3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+  ui:
+    build: ./services/ui
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_GATEWAY_URL=http://gateway:3000
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    depends_on:
+      - gateway

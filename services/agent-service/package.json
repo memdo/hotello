@@ -1,0 +1,20 @@
+{
+  "name": "hotello-agent-service",
+  "version": "1.0.0",
+  "description": "AI Agent Service for Hotello",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.11.0",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.1"
+  }
+}

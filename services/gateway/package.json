@@ -1,0 +1,18 @@
+{
+  "name": "hotello-gateway",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node --no-deprecation index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "http-proxy-middleware": "^3.0.0",
+    "ioredis": "^5.10.1",
+    "rate-limit-redis": "^5.0.0"
+  }
+}
