@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -11,6 +11,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+function ChangeView({ center, zoom }) {
+  const map = useMap();
+  map.setView(center, zoom);
+  return null;
+}
+
 export default function MapView({ hotels }) {
   // Center on first hotel or default to Rome
   const center = hotels.length > 0 && hotels[0].latitude && hotels[0].longitude
@@ -20,6 +26,7 @@ export default function MapView({ hotels }) {
   return (
     <div style={{ width: '100%', height: '100%', borderRadius: '12px', overflow: 'hidden' }}>
       <MapContainer center={center} zoom={12} style={{ height: '100%', width: '100%' }}>
+        <ChangeView center={center} zoom={12} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
