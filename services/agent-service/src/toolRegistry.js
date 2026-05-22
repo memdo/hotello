@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,9 +35,6 @@ export class ToolRegistry {
     const functionDeclarations = [];
     
     for (const [name, tool] of this.tools.entries()) {
-      // Create OpenAPI-like schema for Gemini based on Zod schema.
-      // Since Gemini SDK uses specific formatting, we map our simplified definitions.
-      // We'll rely on the tool providing a Gemini-compatible `parameters` object alongside the zod schema.
       functionDeclarations.push({
         name: tool.name,
         description: tool.description,
@@ -45,5 +43,29 @@ export class ToolRegistry {
     }
 
     return [{ functionDeclarations }];
+  }
+
+  getOpenAIToolDeclarations() {
+    const tools = [];
+    
+    for (const [name, tool] of this.tools.entries()) {
+      const jsonSchema = zodToJsonSchema(tool.schema, { target: "jsonSchema7" });
+      
+      // Cerebras/OpenAI expects parameters to be a valid JSON Schema object.
+      // zodToJsonSchema returns an object that might have a $schema property, but it's usually fine.
+      // We will remove the $schema if it exists just to be safe.
+      delete jsonSchema.$schema;
+
+      tools.push({
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: jsonSchema
+        }
+      });
+    }
+
+    return tools;
   }
 }

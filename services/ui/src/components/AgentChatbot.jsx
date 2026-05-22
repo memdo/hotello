@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 export default function AgentChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'model', parts: [{ text: "Hi! I'm the Hotello AI Assistant. I can help you find and book rooms. How can I help?" }] }
+    { role: 'assistant', content: "Hi! I'm the Hotello AI Assistant. I can help you find and book rooms. How can I help?" }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export default function AgentChatbot() {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', parts: [{ text: userMessage }] }]);
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
     try {
@@ -40,10 +40,10 @@ export default function AgentChatbot() {
         throw new Error(data.error || 'Failed to communicate with Agent');
       }
 
-      setMessages(prev => [...prev, { role: 'model', parts: [{ text: data.response }] }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { role: 'model', parts: [{ text: `Error: ${error.message}` }] }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}` }]);
     } finally {
       setLoading(false);
     }
@@ -92,7 +92,7 @@ export default function AgentChatbot() {
             padding: '10px 14px', borderRadius: '8px', maxWidth: '85%',
             wordWrap: 'break-word', whiteSpace: 'pre-wrap', fontSize: '0.95rem'
           }}>
-            {msg.parts[0].text}
+            {msg.content}
           </div>
         ))}
         {loading && <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Agent is thinking...</div>}

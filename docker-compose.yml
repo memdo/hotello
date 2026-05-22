@@ -62,13 +62,14 @@ services:
       - PORT=3004
       - GATEWAY_URL=http://gateway:3000
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
 
   ui:
     build: ./services/ui
     ports:
       - "5173:5173"
     environment:
-      - VITE_GATEWAY_URL=http://gateway:3000
+      - VITE_GATEWAY_URL=http://localhost:3000
       - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
       - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
     depends_on:
