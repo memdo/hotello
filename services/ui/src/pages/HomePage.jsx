@@ -50,7 +50,17 @@ export default function HomePage() {
         <div className="container">
           <h2 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Featured Destinations</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-            {['Rome', 'Paris', 'Tokyo', 'New York', 'Istanbul', 'Los Angeles'].map((city, i) => (
+            {['Rome', 'Paris', 'Tokyo', 'New York', 'Istanbul', 'Los Angeles'].map((city, i) => {
+              const cityImages = {
+                'Rome': 'rome.jpg',
+                'Paris': 'paris.jpg',
+                'Tokyo': 'tokyo.jpg',
+                'New York': 'ny.jpg',
+                'Istanbul': 'istanbul.jpg',
+                'Los Angeles': 'la.jpg'
+              };
+              const bucketUrl = 'https://puvlkcksegmxvokalikk.supabase.co/storage/v1/object/public/hotel-images/';
+              return (
               <div 
                 key={city} 
                 className="glass hover-card" 
@@ -58,7 +68,7 @@ export default function HomePage() {
                 style={{ overflow: 'hidden', cursor: 'pointer', padding: 0 }}
               >
                 <img 
-                  src={`https://source.unsplash.com/featured/?${city.toLowerCase()},city`} 
+                  src={`${bucketUrl}${cityImages[city]}`} 
                   alt={city}
                   style={{ width: '100%', height: '200px', objectFit: 'cover' }} 
                 />
@@ -67,7 +77,7 @@ export default function HomePage() {
                   <p style={{ color: 'var(--text-secondary)' }}>Explore properties →</p>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </section>
