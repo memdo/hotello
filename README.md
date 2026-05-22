@@ -34,52 +34,233 @@ Hotello is a highly scalable, microservice-based hotel booking platform. It demo
 
 ---
 
-## 🏗️ Architecture Deep Dive
+## 🛠️ Technologies Used
 
-Hotello abandons the traditional monolith in favor of a strictly decoupled, containerized microservices architecture.
+### Frontend
+*   **React 19 & Vite**: Ultra-fast build tooling and UI rendering.
+*   **React Router v7**: Client-side routing and layout management.
+*   **React Leaflet**: Interactive maps for hotel location rendering.
+*   **Vanilla CSS (Glassmorphism)**: Custom CSS architecture utilizing CSS Variables for seamless light/dark mode and frosted-glass aesthetics.
+
+### Backend Microservices
+*   **Node.js (v22)**: Core runtime for all microservices.
+*   **Express.js**: Lightweight HTTP server framework used across all APIs.
+*   **http-proxy-middleware**: Request routing within the API Gateway.
+*   **amqplib**: RabbitMQ integration for event-driven messaging.
+*   **Google Gemini SDK**: LLM integration for the Agent Service.
+
+### Databases & Caching
+*   **Supabase (PostgreSQL)**: Relational data, Row Level Security (RLS), and JSON Web Token (JWT) Authentication.
+*   **MongoDB Atlas**: Distributed NoSQL document storage for comments.
+*   **Upstash Redis**: Serverless in-memory data structure store for caching API responses and rate limiting.
+
+### DevOps & Deployment
+*   **Docker & Docker Compose**: Containerization for local development and parity with production.
+*   **Render**: Cloud platform hosting the decentralized microservices and static frontend.
+*   **CloudAMQP**: Fully managed RabbitMQ cluster.
+
+---
+
+## 🏗️ High-Level System Architecture
+
+Hotello abandons the traditional monolith in favor of a strictly decoupled, containerized microservices architecture. Below is the system topology illustrating how the various services interact.
+
+```mermaid
+flowchart TD
+    %% Entities
+    User((User UI))
+    
+    %% API Gateway Layer
+    subgraph GatewayLayer [Gateway & Security]
+        Gateway["API Gateway (Express)"]
+        RateLimiter[("Redis Rate Limiter")]
+    end
+    
+    %% Microservices Layer
+    subgraph ServicesLayer [Microservices]
+        HotelService["Hotel Service"]
+        AgentService["AI Agent Service"]
+        CommentsService["Comments Service"]
+        NotifWorker["Notification Worker"]
+    end
+    
+    %% Data Persistence Layer
+    subgraph PersistenceLayer [Polyglot Persistence & Queues]
+        Supabase[("PostgreSQL<br/>(Supabase)")]
+        MongoDB[("MongoDB Atlas<br/>(Reviews)")]
+        RedisCache[("Redis Cache<br/>(Upstash)")]
+        RabbitMQ[["RabbitMQ<br/>(CloudAMQP)"]]
+    end
+    
+    %% Connections
+    User -- "REST / API Calls" --> Gateway
+    Gateway -- "Verify Token / Quotas" --> RateLimiter
+    
+    Gateway -- "/api/v1/hotels" --> HotelService
+    Gateway -- "/api/v1/agent" --> AgentService
+    Gateway -- "/api/v1/comments" --> CommentsService
+    
+    %% Service to DB connections
+    HotelService -- "Read/Write & RPC Bookings" --> Supabase
+    HotelService -- "Cache Results" --> RedisCache
+    HotelService -- "Publish Events" --> RabbitMQ
+    
+    CommentsService -- "Read/Write Comments" --> MongoDB
+    CommentsService -- "Sync Ratings" --> RedisCache
+    
+    AgentService -- "Fetch Tools" --> HotelService
+    AgentService -- "LLM API" --> Gemini((Google Gemini AI))
+    
+    NotifWorker -- "Consume Events" --> RabbitMQ
+```
+
+---
+
+## 🔄 Deep Dive: Core User Flows
+
+### 1. The Booking Flow (Atomic Transactions & Event Queues)
+
+To completely eliminate the risk of double-booking and availability drift, reservations are executed entirely within a strict PostgreSQL RPC function (`book_room`). The RPC explicitly checks and decrements daily room capacities in the `room_availability` table using row-level locks (`FOR UPDATE`). 
+
+To ensure the API responds instantly to the user, background tasks like sending confirmation emails are offloaded to an asynchronous message queue.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Gateway as API Gateway
+    participant Hotel as Hotel Service
+    participant Supabase as PostgreSQL (RPC)
+    participant MQ as RabbitMQ
+    participant Worker as Notification Worker
+
+    User->>Gateway: POST /hotels/book (JWT)
+    Gateway->>Gateway: Validate JWT & Rate Limit
+    Gateway->>Hotel: Route Request
+    Hotel->>Supabase: Execute `book_room` RPC
+    
+    activate Supabase
+    Supabase->>Supabase: Lock Rows (FOR UPDATE)
+    Supabase->>Supabase: Check Availability
+    Supabase->>Supabase: Decrement Capacity & Insert Reservation
+    Supabase-->>Hotel: Success (Atomic Transaction)
+    deactivate Supabase
+    
+    Hotel->>MQ: Publish `reservation.created` Event
+    Hotel-->>Gateway: 200 OK Response
+    Gateway-->>User: Reservation Confirmed!
+    
+    %% Asynchronous Processing
+    MQ->>Worker: Consume Event Message
+    activate Worker
+    Worker->>Worker: Parse Payload & Simulate Email
+    Worker-->>MQ: Ack Message
+    deactivate Worker
+```
+
+### 2. The Autonomous AI Agent Flow
+
+The Agent Service employs a highly robust "Dynamic Tool Registry" architecture. Rather than hardcoding LLM capabilities, tools (like `searchHotels` or `bookRoom`) are built as modular files. The LLM is **never** given direct database access; instead, it securely executes internal backend REST calls on behalf of the user using their delegated JWT token.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Gateway as API Gateway
+    participant Agent as Agent Service
+    participant LLM as Google Gemini
+    participant Hotel as Hotel Service
+
+    User->>Gateway: POST /agent/chat "Book a room in Rome"
+    Gateway->>Agent: Route Request
+    Agent->>LLM: Send Prompt + Registered Tool Schemas
+    
+    activate LLM
+    LLM-->>Agent: Function Call Request: `searchHotels(Rome)`
+    deactivate LLM
+    
+    Agent->>Hotel: Internal API Call /hotels/search?city=Rome
+    Hotel-->>Agent: JSON Response (Hotels in Rome)
+    
+    Agent->>LLM: Return Tool Output (Hotel JSON)
+    
+    activate LLM
+    LLM-->>Agent: Formatted Markdown Response
+    deactivate LLM
+    
+    Agent-->>Gateway: 200 OK (Response Text)
+    Gateway-->>User: "I found 3 hotels in Rome! Here they are..."
+```
+
+---
+
+## 🏛️ Service Details
 
 ### 1. API Gateway (`services/gateway`)
 The central nervous system and zero-trust barrier of the application. Built with Node.js and Express, it is the *only* backend service exposed to the public internet.
 *   **Authentication Interceptor & Caching**: Intercepts `Authorization: Bearer <token>` headers, validates them against Supabase Auth, and aggressively caches the validation in Redis for 5 minutes. This drastically reduces network roundtrips to the identity provider and accelerates authenticated requests.
 *   **Fault-Tolerant Rate Limiting**: Utilizes `express-rate-limit` backed by Redis to enforce strict request quotas across all services. It features a graceful fallback mechanism: if Redis goes down, it seamlessly falls back to memory-based limiting, ensuring the backend is never left unprotected.
-*   **Reverse Proxy & Request Sanitization**: Uses `http-proxy-middleware` to securely route requests to internal microservices based on URL paths (`/api/v1/hotels`, `/api/v1/comments`, etc.), ensuring malformed or unauthorized requests never reach the core business logic.
+*   **Reverse Proxy & Request Sanitization**: Uses `http-proxy-middleware` to securely route requests to internal microservices based on URL paths (`/api/v1/hotels`, `/api/v1/comments`, etc.).
 
-### 2. Hotel Service (`services/hotel-service`)
-The core transactional backend responsible for inventory management.
-*   **Strict Input Validation**: Utilizes robust middleware checks and clamps data boundaries (e.g., pagination limits, valid UUID enforcement) to prevent injection attacks and ensure data cleanliness.
-*   **Atomic Bookings & ACID Guarantees**: To completely eliminate the risk of double-booking and availability drift, reservations are executed entirely within a strict PostgreSQL RPC function (`book_room`). The RPC explicitly checks and decrements daily room capacities in the `room_availability` table using row-level locks (`FOR UPDATE`). This guarantees 100% data integrity within a single atomic transaction.
-*   **Event-Driven Architecture**: Instead of blocking user requests to send emails, it immediately publishes `reservation.created` and `reservation.cancelled` events to the RabbitMQ exchange for background processing.
-
-### 3. Comments Service (`services/comments-service`)
+### 2. Comments Service (`services/comments-service`)
 A dedicated NoSQL microservice built for scale.
-*   **MongoDB Atlas Connection Pooling**: Implements intelligent connection pooling (`cachedClient`) to maintain a persistent, high-throughput connection to the database across serverless or containerized environments.
+*   **MongoDB Atlas Connection Pooling**: Implements intelligent connection pooling (`cachedClient`) to maintain a persistent, high-throughput connection to the database across containerized environments.
 *   **Traffic Isolation**: Decoupling user reviews into MongoDB prevents heavy, read-intensive query loads from locking the relational PostgreSQL transactional tables where bookings happen.
 *   **Data Integrity & Redis Sync**: Actively updates and invalidates aggregated hotel ratings in the Redis cache immediately upon comment deletion or creation to ensure UI speed without sacrificing data freshness.
 
-### 4. Agent Service (`services/agent-service`)
-The autonomous AI Orchestrator that gives Hotello its edge.
-*   **Dynamic Tool Registry System**: Employs a highly robust, scalable "Tool Registry" architecture. Rather than hardcoding LLM capabilities, tools (like `searchHotels` or `bookRoom`) are built as modular files. The registry dynamically loads these tools at runtime, maps them strictly to Gemini JSON schemas, and binds them to the agent's context. 
-*   **Strict LLM Boundary Validation**: The LLM is never given direct database access. The Tool Registry acts as a strict validation boundary, catching hallucinations, validating parameters requested by the AI, and securely executing the internal backend REST calls on behalf of the user using their delegated JWT token.
-*   **Stateful Conversation Context**: Maintains an intelligent memory window of previous chat history to provide a seamless, continuous booking experience.
-
-### 5. Notification Worker (`services/notification-worker`)
+### 3. Notification Worker (`services/notification-worker`)
 The asynchronous background processor ensuring system resilience.
 *   **Dedicated Consumer Architecture**: Runs continuously as a background Node.js process (not an HTTP server). It maintains a persistent connection to CloudAMQP with exponential backoff and reconnection logic.
-*   **Zero-Blocking UI**: By consuming the RabbitMQ queue, it handles the heavy lifting of parsing payloads and simulating email confirmations asynchronously. This guarantees that the user's booking request returns instantly, immune to the latency of slow third-party notification providers.
-
-### 6. Frontend UI (`services/ui`)
-*   **Tech**: React 19, Vite, React Router, Tailwind-inspired custom CSS.
-*   Uses a global fetch interceptor to automatically route all `/api` requests through the Gateway URL in production environments.
+*   **Zero-Blocking UI**: By consuming the RabbitMQ queue, it handles the heavy lifting of parsing payloads and simulating external side-effects (like emails) asynchronously.
 
 ---
 
-## 🛡️ Design Decisions & Risk Mitigation
+## ⚡ Caching Strategy & Data Models
 
-1. **Dockerization vs Serverless (Risk Mitigated)**: 
-   Initially, the project explored using Vercel Serverless Functions. However, a major architectural risk was identified: *pulling continuous streams of messages from RabbitMQ inside a serverless environment risks execution timeouts (e.g., Vercel's 10-second limit)*. 
-   To permanently solve this, the architecture was fully **Dockerized**. The backend is now composed of individual Docker containers. The `notification-worker` runs as a continuous, dedicated Node.js process that never times out, ensuring 100% reliable message consumption.
-2. **Cloud Networking & Free Tier Constraints**: 
-   While a true enterprise architecture would deploy the internal microservices within a Private Network (hidden from the public internet), Render requires a paid plan for Private Services. Therefore, for the scope of this assignment deployment, all microservices are deployed as public **Web Services**. The API Gateway acts as the primary orchestrator and authentication barrier, but the internal services are technically accessible directly due to the free-tier infrastructure limits.
+Hotello utilizes **Upstash Redis** to drastically reduce database latency. The architecture relies on specific key prefixes to intelligently invalidate data when state changes:
+
+*   `token:<JWT_STRING>`: Caches Supabase User IDs for 5 minutes to avoid redundant Auth API calls on every request.
+*   `search:<QUERY_HASH>`: Caches the results of complex hotel searches. These are invalidated dynamically when inventory changes.
+*   `hotel:details:<HOTEL_ID>`: Stores the full aggregate profile of a hotel, including its Mongo-based review score and Postgres-based room types.
+*   `rl:hourly:user:<USER_ID>` & `rl:daily:ip:<IP_ADDRESS>`: Used by the Gateway's sliding-window rate limiters to track request quotas.
+
+**Invalidation Flow**: When a user books a room via the `Hotel Service`, the backend explicitly runs `redis.del()` on all `search:*` and `hotel:details:*` keys associated with that property to prevent stale availability data from being served.
+
+---
+
+## 🔒 Security & Authentication Model
+
+The entire ecosystem relies on **JWT (JSON Web Tokens)** managed by Supabase Auth.
+
+1.  **Client-Side**: The React UI authenticates the user and retrieves a short-lived Access Token.
+2.  **Gateway-Side**: Every request must pass through the API Gateway, which intercepts the `Authorization` header, cryptographically verifies the JWT, and attaches the parsed `req.user` object to the request.
+3.  **Service-Side**: The internal microservices trust the Gateway.
+4.  **Database-Side (RLS)**: Supabase PostgreSQL implements strict Row Level Security (RLS). Even if a malicious user bypasses the API, the database will forcefully reject `UPDATE` or `DELETE` commands unless the JWT proves the user owns the specific reservation row (`user_id = auth.uid()`).
+5.  **Role-Based Access Control (RBAC)**: Certain endpoints (like modifying hotel inventory) enforce an Admin check, verifying that the user's UUID matches the `admin_id` of the target hotel.
+
+---
+
+## 📡 API Endpoints Overview
+
+All external requests hit the API Gateway, which forwards them to the underlying microservices.
+
+| Method | Endpoint Path | Target Service | Auth Req. | Description |
+| :--- | :--- | :--- | :---: | :--- |
+| **GET** | `/api/v1/hotels/search` | Hotel Service | ❌ | Returns filtered and cached hotel lists |
+| **GET** | `/api/v1/hotels/:id` | Hotel Service | ❌ | Returns aggregate hotel details & rooms |
+| **POST** | `/api/v1/hotels/book` | Hotel Service | ✅ | Executes atomic `book_room` RPC transaction |
+| **GET** | `/api/v1/hotels/reservations/me` | Hotel Service | ✅ | Retrieves user's booking history |
+| **GET** | `/api/v1/comments/:hotelId` | Comments Service | ❌ | Fetches paginated MongoDB reviews |
+| **POST** | `/api/v1/comments` | Comments Service | ✅ | Posts a new review and updates Redis |
+| **POST** | `/api/v1/agent/chat` | Agent Service | ❌* | Connects to the Gemini AI Orchestrator |
+
+*\*The Agent Service allows anonymous chat, but if the user provides a JWT, the Agent assumes their identity to perform authenticated actions (like booking).*
+
+---
+
+## 🚀 Future Scalability
+
+The decoupled nature of Hotello allows for seamless horizontal scaling:
+*   **Load Balancing**: If search traffic spikes, we can spin up multiple instances of the `Hotel Service` behind a round-robin load balancer without needing to scale the `Comments Service`.
+*   **Event Sourcing Expansion**: The RabbitMQ integration currently handles notifications, but it is primed for Event Sourcing. Future workers could consume `reservation.created` events to sync data to a Data Warehouse (e.g., Snowflake) for business intelligence without touching the core transactional database.
 
 ---
 
