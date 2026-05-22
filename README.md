@@ -1,6 +1,17 @@
 # Hotello - AI-Powered Hotel Booking Ecosystem
 
-![Hotello Cover Image](https://via.placeholder.com/1200x300.png?text=Hotello+-+Microservices+Hotel+Booking)
+![Hotello Cover Image](./hotello.png)
+
+**Watch the Demo Video:** [https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing](https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing)
+
+### 🌍 Live Deployments
+*   **Website (UI)**: [https://hotello-cnxn.onrender.com](https://hotello-cnxn.onrender.com)
+*   **API Gateway**: [https://hotello-gateway.onrender.com](https://hotello-gateway.onrender.com)
+*   **Hotel Service**: [https://hotello-2u5v.onrender.com](https://hotello-2u5v.onrender.com)
+*   **Comments Service**: [https://hotello-comments-service.onrender.com](https://hotello-comments-service.onrender.com)
+*   **Agent Service**: [https://hotello-agent-service.onrender.com](https://hotello-agent-service.onrender.com)
+
+---
 
 Hotello is a highly scalable, microservice-based hotel booking platform built for the SE4458 assignment. It demonstrates enterprise-grade architectural patterns, including a custom API Gateway, distributed polyglot persistence (SQL + NoSQL), distributed caching, asynchronous message queuing, and an autonomous AI Agent that utilizes server-side function calling to interact with the platform on behalf of the user.
 
