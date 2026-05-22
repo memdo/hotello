@@ -63,6 +63,47 @@ async function startQueueListener() {
   }
 }
 
+// 2.5 Passive Queue Processing Endpoint (To be triggered externally)
+app.post('/api/v1/notifications/process-queue', async (req, res) => {
+  const cronSecret = req.headers['x-cron-secret'];
+  const expectedSecret = process.env.CRON_SECRET;
+
+  if (!expectedSecret || cronSecret !== expectedSecret) {
+    return res.status(401).json({ error: 'Unauthorized CRON trigger' });
+  }
+
+  try {
+    if (!process.env.CLOUDAMQP_URL) {
+      return res.status(500).json({ error: 'CLOUDAMQP_URL not specified' });
+    }
+    const conn = await amqp.connect(process.env.CLOUDAMQP_URL);
+    const channel = await conn.createChannel();
+    await channel.assertQueue('reservation_notifications', { durable: true });
+
+    let processedCount = 0;
+    // Get message without subscribing (ideal for a periodic cron job)
+    let msg = await channel.get('reservation_notifications');
+    
+    while (msg !== false) {
+      const payload = JSON.parse(msg.content.toString());
+      console.log(`[SCHEDULED CRON] Processing reservation email to ${payload.userEmail} for stay at ${payload.hotelName}. Total: $${payload.totalPrice}`);
+      channel.ack(msg);
+      processedCount++;
+      
+      msg = await channel.get('reservation_notifications');
+      if (processedCount >= 50) break; // Safety limit
+    }
+    
+    await channel.close();
+    await conn.close();
+
+    return res.status(200).json({ success: true, processedCount });
+  } catch (error) {
+    console.error('[PASSIVE CRON] Queue processing error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // 3. Passive Capacity Check Endpoint (To be triggered externally by Cloud Cron/Logic Apps)
 app.post('/api/v1/notifications/capacity-check', async (req, res) => {
   const cronSecret = req.headers['x-cron-secret'];

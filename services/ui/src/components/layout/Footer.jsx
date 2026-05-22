@@ -32,7 +32,7 @@ export default function Footer() {
           </div>
         </div>
         <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', paddingTop: '2rem', borderTop: '1px solid var(--border)' }}>
-          © 2026 Hotello. All rights reserved. Built for SE4458.
+          © 2026 Hotello. All rights reserved.
         </div>
       </div>
     </footer>

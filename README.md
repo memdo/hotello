@@ -200,16 +200,30 @@ The central nervous system and zero-trust barrier of the application. Built with
 *   **Fault-Tolerant Rate Limiting**: Utilizes `express-rate-limit` backed by Redis to enforce strict request quotas across all services. It features a graceful fallback mechanism: if Redis goes down, it seamlessly falls back to memory-based limiting, ensuring the backend is never left unprotected.
 *   **Reverse Proxy & Request Sanitization**: Uses `http-proxy-middleware` to securely route requests to internal microservices based on URL paths (`/api/v1/hotels`, `/api/v1/comments`, etc.).
 
-### 2. Comments Service (`services/comments-service`)
+### 2. Hotel Service (`services/hotel-service`)
+The core transactional engine for the platform.
+*   **Atomic Booking RPC**: Utilizes a PostgreSQL Stored Procedure (`book_room`) and row-level locking (`FOR UPDATE`) to ensure zero race conditions or double-bookings, even under heavy concurrent load.
+*   **Aggressive Caching**: Interacts directly with Upstash Redis to aggressively cache hotel search results and property details, drastically reducing latency for read-heavy operations.
+*   **Event Publishing**: Securely publishes robust, structured JSON messages to the CloudAMQP queue the exact moment a booking transaction successfully commits, enabling decoupled downstream processing.
+
+### 3. Comments Service (`services/comments-service`)
 A dedicated NoSQL microservice built for scale.
 *   **MongoDB Atlas Connection Pooling**: Implements intelligent connection pooling (`cachedClient`) to maintain a persistent, high-throughput connection to the database across containerized environments.
 *   **Traffic Isolation**: Decoupling user reviews into MongoDB prevents heavy, read-intensive query loads from locking the relational PostgreSQL transactional tables where bookings happen.
 *   **Data Integrity & Redis Sync**: Actively updates and invalidates aggregated hotel ratings in the Redis cache immediately upon comment deletion or creation to ensure UI speed without sacrificing data freshness.
 
-### 3. Notification Worker (`services/notification-worker`)
+### 4. Notification Worker (`services/notification-worker`)
 The asynchronous background processor ensuring system resilience.
 *   **Dedicated Consumer Architecture**: Runs continuously as a background Node.js process (not an HTTP server). It maintains a persistent connection to CloudAMQP with exponential backoff and reconnection logic.
 *   **Zero-Blocking UI**: By consuming the RabbitMQ queue, it handles the heavy lifting of parsing payloads and simulating external side-effects (like emails) asynchronously.
+*   **Automated Scheduling Integration**: The `capacity_check_logic_app.json` file contains an Azure Logic App workflow definition. It acts as a serverless cron job that wakes up nightly to:
+    1. Hit the auditing endpoint (`/api/v1/notifications/capacity-check`). If any room type's 30-day availability falls below 20%, it alerts the hotel admin.
+    2. Hit the queue processing endpoint (`/api/v1/notifications/process-queue`) to passively pull any unhandled new hotel reservations from RabbitMQ and dispatch confirmation emails.
+
+### 5. Agent Service (`services/agent-service`)
+The autonomous AI orchestrator.
+*   **Dynamic Tool Registry**: Uses file-based dynamic loading to securely register deterministic backend functions (tools) that the Google Gemini LLM can execute.
+*   **Contextual Booking**: Translates natural language intent ("Book me a room in Rome") directly into secure, backend-to-backend API calls using the user's forwarded JWT token.
 
 ---
 
@@ -264,7 +278,7 @@ The decoupled nature of Hotello allows for seamless horizontal scaling:
 
 ---
 
-## 🗄️ Database Schema (PostgreSQL)
+## 🗄️ ER Diagram
 
 ```mermaid
 erDiagram

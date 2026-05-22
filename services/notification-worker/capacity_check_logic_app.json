@@ -1,0 +1,63 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "actions": {
+      "HTTP_Trigger_Capacity_Check": {
+        "inputs": {
+          "method": "POST",
+          "uri": "https://hotello-gateway.onrender.com/api/v1/notifications/capacity-check",
+          "headers": {
+            "x-cron-secret": "@parameters('CronSecret')"
+          }
+        },
+        "runAfter": {},
+        "type": "Http",
+        "description": "Calls the Hotello backend to run the 20% room capacity calculation."
+      },
+      "HTTP_Trigger_Process_Queue": {
+        "inputs": {
+          "method": "POST",
+          "uri": "https://hotello-gateway.onrender.com/api/v1/notifications/process-queue",
+          "headers": {
+            "x-cron-secret": "@parameters('CronSecret')"
+          }
+        },
+        "runAfter": {
+          "HTTP_Trigger_Capacity_Check": [
+            "Succeeded"
+          ]
+        },
+        "type": "Http",
+        "description": "Pulls new hotel reservations from the RabbitMQ queue and processes the emails."
+      }
+    },
+    "contentVersion": "1.0.0.0",
+    "outputs": {},
+    "parameters": {
+      "CronSecret": {
+        "defaultValue": "se4458-hotello",
+        "type": "SecureString",
+        "description": "The secret key to authorize the cron execution on the backend."
+      }
+    },
+    "triggers": {
+      "Nightly_Recurrence": {
+        "recurrence": {
+          "frequency": "Day",
+          "interval": 1,
+          "schedule": {
+            "hours": [
+              0
+            ],
+            "minutes": [
+              0
+            ]
+          }
+        },
+        "type": "Recurrence",
+        "description": "Triggers every day at midnight (00:00)."
+      }
+    }
+  },
+  "parameters": {}
+}
