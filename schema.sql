@@ -69,20 +69,7 @@ CREATE TABLE IF NOT EXISTS public.reservations (
   created_at timestamptz DEFAULT now()
 );
 
--- Comments
-CREATE TABLE IF NOT EXISTS public.comments (
-  id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
-  hotel_id uuid REFERENCES public.hotels(id) ON DELETE CASCADE,
-  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
-  rating_overall integer CHECK (rating_overall BETWEEN 1 AND 10),
-  rating_cleanliness integer CHECK (rating_cleanliness BETWEEN 1 AND 10),
-  rating_staff integer CHECK (rating_staff BETWEEN 1 AND 10),
-  rating_facilities integer CHECK (rating_facilities BETWEEN 1 AND 10),
-  rating_location integer CHECK (rating_location BETWEEN 1 AND 10),
-  rating_comfort integer CHECK (rating_comfort BETWEEN 1 AND 10),
-  comment_text text,
-  created_at timestamptz DEFAULT now()
-);
+
 
 -- RLS Policies
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -124,9 +111,6 @@ CREATE POLICY "Admins see hotel reservations" ON public.reservations FOR SELECT 
 );
 CREATE POLICY "Users can insert own reservations" ON public.reservations FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
-ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read comments" ON public.comments FOR SELECT USING (true);
-CREATE POLICY "Users can insert comments" ON public.comments FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
 
 -- Triggers for User Profile auto-creation (optional but useful)
 -- create or replace function public.handle_new_user() 
