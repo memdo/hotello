@@ -10,11 +10,11 @@ export default function HomePage() {
       {/* Hero Section */}
       <section style={{ 
         position: 'relative', 
-        padding: '8rem 0', 
+        padding: '5rem 0', 
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '600px',
+        minHeight: '450px',
         zIndex: 10
       }}>
         {/* Background Image with Overlay */}
@@ -46,7 +46,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Destinations */}
-      <section style={{ padding: '5rem 0' }}>
+      <section style={{ padding: '2rem 0 5rem' }}>
         <div className="container">
           <h2 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Featured Destinations</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
