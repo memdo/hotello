@@ -64,7 +64,7 @@ export default function HomePage() {
               <div 
                 key={city} 
                 className="glass hover-card" 
-                onClick={() => navigate(`/search?location=${encodeURIComponent(city)}`)}
+                onClick={() => navigate(`/search?city=${encodeURIComponent(city)}`)}
                 style={{ overflow: 'hidden', cursor: 'pointer', padding: 0 }}
               >
                 <img 
