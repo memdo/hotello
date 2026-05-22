@@ -21,7 +21,7 @@ Hotello is a highly scalable, microservice-based hotel booking platform. It demo
 
 ## 🌟 Key Features
 
-*   **Autonomous AI Assistant**: An integrated Chatbot powered by Google's `gemini-2.5-flash` model. It leverages tool-calling (function calling) to search databases and book reservations contextually without user navigation.
+*   **Autonomous AI Assistant**: An integrated Chatbot powered by Cerebras Inference using the `gpt-oss-120b` model. It leverages tool-calling (function calling) to search databases and book reservations contextually without user navigation.
 *   **Decoupled Microservices**: 5 distinct, Dockerized Node.js services communicating over a unified API Gateway.
 *   **Polyglot Persistence**: 
     *   **PostgreSQL (Supabase)** for strictly structured, ACID-compliant relational data (Reservations, Availability).
@@ -47,7 +47,7 @@ Hotello is a highly scalable, microservice-based hotel booking platform. It demo
 *   **Express.js**: Lightweight HTTP server framework used across all APIs.
 *   **http-proxy-middleware**: Request routing within the API Gateway.
 *   **amqplib**: RabbitMQ integration for event-driven messaging.
-*   **Google Gemini SDK**: LLM integration for the Agent Service.
+*   **Cerebras Cloud SDK**: Ultra-fast LLM integration for the Agent Service.
 
 ### Databases & Caching
 *   **Supabase (PostgreSQL)**: Relational data, Row Level Security (RLS), and JSON Web Token (JWT) Authentication.
@@ -109,7 +109,7 @@ flowchart TD
     CommentsService -- "Sync Ratings" --> RedisCache
     
     AgentService -- "Fetch Tools" --> HotelService
-    AgentService -- "LLM API" --> Gemini((Google Gemini AI))
+    AgentService -- "LLM API" --> Cerebras((Cerebras AI))
     
     NotifWorker -- "Consume Events" --> RabbitMQ
 ```
@@ -166,7 +166,7 @@ sequenceDiagram
     participant User
     participant Gateway as API Gateway
     participant Agent as Agent Service
-    participant LLM as Google Gemini
+    participant LLM as Cerebras
     participant Hotel as Hotel Service
 
     User->>Gateway: POST /agent/chat "Book a room in Rome"
@@ -222,7 +222,7 @@ The asynchronous background processor ensuring system resilience.
 
 ### 5. Agent Service (`services/agent-service`)
 The autonomous AI orchestrator.
-*   **Dynamic Tool Registry**: Uses file-based dynamic loading to securely register deterministic backend functions (tools) that the Google Gemini LLM can execute.
+*   **Dynamic Tool Registry**: Uses file-based dynamic loading to securely register deterministic backend functions (tools) that the Cerebras LLM can execute.
 *   **Contextual Booking**: Translates natural language intent ("Book me a room in Rome") directly into secure, backend-to-backend API calls using the user's forwarded JWT token.
 
 ---
@@ -264,7 +264,7 @@ All external requests hit the API Gateway, which forwards them to the underlying
 | **GET** | `/api/v1/hotels/reservations/me` | Hotel Service | ✅ | Retrieves user's booking history |
 | **GET** | `/api/v1/comments/:hotelId` | Comments Service | ❌ | Fetches paginated MongoDB reviews |
 | **POST** | `/api/v1/comments` | Comments Service | ✅ | Posts a new review and updates Redis |
-| **POST** | `/api/v1/agent/chat` | Agent Service | ❌* | Connects to the Gemini AI Orchestrator |
+| **POST** | `/api/v1/agent/chat` | Agent Service | ❌* | Connects to the Cerebras AI Orchestrator |
 
 *\*The Agent Service allows anonymous chat, but if the user provides a JWT, the Agent assumes their identity to perform authenticated actions (like booking).*
 
@@ -360,7 +360,10 @@ CLOUDAMQP_URL=amqps://user:pass@host/vhost
 # MongoDB Atlas
 MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority
 
-# Google Gemini AI
+# Cerebras Inference AI
+CEREBRAS_API_KEY=your-cerebras-key
+
+# Google Gemini AI (Optional Fallback)
 GEMINI_API_KEY=your-gemini-key
 ```
 
