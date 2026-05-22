@@ -4,7 +4,7 @@
 
 **Frontend & Presentation**
 *   **Website (UI)**: [https://hotello-cnxn.onrender.com](https://hotello-cnxn.onrender.com)
-*   **Demo Video**: [Google Drive Link](https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing)
+*   **Demo Video**: [https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing](https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing)
 
 **Backend Microservices**
 *   **API Gateway**: [https://hotello-gateway.onrender.com](https://hotello-gateway.onrender.com)
