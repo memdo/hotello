@@ -277,7 +277,7 @@ export default function CommentSection({ hotelId }) {
                     onChange={e => setReview({ ...review, commentText: e.target.value })}
                     placeholder="Write details about your stay..."
                     rows={4}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '0.9rem' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
                     required
                   />
                 </div>

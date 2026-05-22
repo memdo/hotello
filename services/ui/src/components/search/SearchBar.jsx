@@ -89,7 +89,7 @@ export default function SearchBar() {
             setShowLocations(true);
           }}
           onFocus={() => setShowLocations(true)} 
-          style={{ background: 'transparent', border: 'none', color: 'white', padding: '12px', width: '100%', outline: 'none' }} 
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', padding: '12px', width: '100%', outline: 'none' }} 
         />
         
         {showLocations && (
@@ -139,7 +139,7 @@ export default function SearchBar() {
         onClick={() => setShowDatePicker(true)}
       >
         <Calendar color="var(--text-secondary)" size={20} style={{ marginRight: '12px' }} />
-        <span style={{ color: checkIn ? 'white' : 'var(--text-secondary)', userSelect: 'none' }}>
+        <span style={{ color: checkIn ? 'var(--text-primary)' : 'var(--text-secondary)', userSelect: 'none' }}>
           {formattedDates()}
         </span>
       </div>
@@ -162,7 +162,7 @@ export default function SearchBar() {
           min="1"
           value={guests} 
           onChange={e => setGuests(e.target.value)} 
-          style={{ background: 'transparent', border: 'none', color: 'white', padding: '12px', width: '100%', outline: 'none' }} 
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', padding: '12px', width: '100%', outline: 'none' }} 
         />
       </div>
 

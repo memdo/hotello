@@ -156,7 +156,7 @@ export default function ProfilePage() {
                   onChange={e => setDescription(e.target.value)} 
                   placeholder="Tell us a bit about yourself..."
                   rows={4}
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'white', fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                 />
               </div>
 

@@ -21,10 +21,10 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
   return (
     <div className="modal-backdrop">
       <div className="glass" style={{ width: '100%', maxWidth: '400px', padding: '2rem', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', color: 'white' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', color: 'var(--text-primary)' }}>
           <X size={24} />
         </button>
-        <h2 style={{ marginBottom: '1.5rem', color: 'white' }}>Welcome Back</h2>
+        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-primary)' }}>Welcome Back</h2>
         
         {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem' }}>{error}</div>}
         
@@ -67,10 +67,10 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
   return (
     <div className="modal-backdrop">
       <div className="glass" style={{ width: '100%', maxWidth: '400px', padding: '2rem', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', color: 'white' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', color: 'var(--text-primary)' }}>
           <X size={24} />
         </button>
-        <h2 style={{ marginBottom: '1.5rem', color: 'white' }}>Create Account</h2>
+        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-primary)' }}>Create Account</h2>
         
         {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem' }}>{error}</div>}
         

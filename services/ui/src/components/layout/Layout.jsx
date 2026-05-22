@@ -3,10 +3,10 @@ import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
-export default function Layout() {
+export default function Layout({ toggleTheme, theme }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Navbar />
+      <Navbar toggleTheme={toggleTheme} theme={theme} />
       <main style={{ flex: 1 }}>
         <Outlet />
       </main>

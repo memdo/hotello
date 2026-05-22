@@ -253,8 +253,8 @@ export default function AdminPage() {
             className="tab-button"
             style={{ 
               display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600,
-              background: activeTab === 'rooms' ? 'var(--accent-blue)' : 'transparent', 
-              color: activeTab === 'rooms' ? 'white' : 'var(--text-secondary)',
+              background: activeTab === 'rooms' ? 'var(--accent-primary)' : 'transparent', 
+              color: activeTab === 'rooms' ? 'var(--text-primary)' : 'var(--text-secondary)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
@@ -265,8 +265,8 @@ export default function AdminPage() {
             className="tab-button"
             style={{ 
               display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600,
-              background: activeTab === 'availability' ? 'var(--accent-blue)' : 'transparent', 
-              color: activeTab === 'availability' ? 'white' : 'var(--text-secondary)',
+              background: activeTab === 'availability' ? 'var(--accent-primary)' : 'transparent', 
+              color: activeTab === 'availability' ? 'var(--text-primary)' : 'var(--text-secondary)',
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >

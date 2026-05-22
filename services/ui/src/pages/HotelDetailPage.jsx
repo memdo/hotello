@@ -138,7 +138,7 @@ export default function HotelDetailPage() {
                     <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Up to {rt.capacity} guests</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: user ? 'var(--accent-blue)' : 'white' }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 700, color: user ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
                       ${Math.round(rt.price_per_night)}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>per night</div>

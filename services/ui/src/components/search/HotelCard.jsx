@@ -78,7 +78,7 @@ export default function HotelCard({ hotel }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1.5rem' }}>
           <div>
             {hotel.discounted && (
-              <div style={{ color: 'var(--accent-purple)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
+              <div style={{ color: 'var(--accent-primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
                 <Tag size={14} /> Member Price: 15% off
               </div>
             )}
@@ -88,7 +88,7 @@ export default function HotelCard({ hotel }) {
                   ${(hotel.price_per_night / 0.85).toFixed(0)}
                 </span>
               )}
-              <span style={{ fontSize: '2rem', fontWeight: 700, color: hotel.discounted ? 'var(--accent-blue)' : 'white' }}>
+              <span style={{ fontSize: '2rem', fontWeight: 700, color: hotel.discounted ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
                 ${Math.round(hotel.price_per_night)}
               </span>
               <span style={{ color: 'var(--text-secondary)' }}>/ night</span>

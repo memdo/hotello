@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../lib/auth';
 import { LoginModal, RegisterModal } from '../auth/AuthModals';
-import { User, LogOut, Hotel } from 'lucide-react';
+import { User, LogOut, Hotel, Sun, Moon } from 'lucide-react';
 
-export default function Navbar() {
+export default function Navbar({ toggleTheme, theme }) {
   const { user, profile, logout, isAdmin } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -16,10 +16,10 @@ export default function Navbar() {
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', fontWeight: 700 }}>
-              <Hotel color="var(--accent-blue)" size={32} />
+              <Hotel color="var(--accent-primary)" size={32} />
               Hotello
             </Link>
-            <Link to="/explore" style={{ fontWeight: 500, color: 'var(--text-secondary)', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='white'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>
+            <Link to="/explore" style={{ fontWeight: 500, color: 'var(--text-secondary)', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='var(--text-primary)'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>
               Explore
             </Link>
           </div>
@@ -27,10 +27,10 @@ export default function Navbar() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {user ? (
               <>
-                <Link to="/reservations" style={{ fontWeight: 500, color: 'var(--text-secondary)', transition: 'color 0.2s', marginRight: '0.5rem', textDecoration: 'none' }} onMouseOver={e => e.target.style.color='white'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>
+                <Link to="/reservations" style={{ fontWeight: 500, color: 'var(--text-secondary)', transition: 'color 0.2s', marginRight: '0.5rem', textDecoration: 'none' }} onMouseOver={e => e.target.style.color='var(--text-primary)'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>
                   My Reservations
                 </Link>
-                <Link to="/comments" style={{ fontWeight: 500, color: 'var(--text-secondary)', transition: 'color 0.2s', marginRight: '0.5rem', textDecoration: 'none' }} onMouseOver={e => e.target.style.color='white'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>
+                <Link to="/comments" style={{ fontWeight: 500, color: 'var(--text-secondary)', transition: 'color 0.2s', marginRight: '0.5rem', textDecoration: 'none' }} onMouseOver={e => e.target.style.color='var(--text-primary)'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>
                   My Comments
                 </Link>
                 {!profile?.full_name ? (
@@ -45,7 +45,7 @@ export default function Navbar() {
                     ) : (
                       <User size={20} />
                     )}
-                    <span onMouseOver={e => e.target.style.color='white'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>{profile.full_name}</span>
+                    <span onMouseOver={e => e.target.style.color='var(--text-primary)'} onMouseOut={e => e.target.style.color='var(--text-secondary)'}>{profile.full_name}</span>
                   </Link>
                 )}
                 {isAdmin && (
@@ -63,6 +63,10 @@ export default function Navbar() {
                 <button onClick={() => setShowRegister(true)} className="btn-primary">Sign Up</button>
               </>
             )}
+            
+            <button onClick={toggleTheme} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '50%', background: 'var(--surface-color-light)', color: 'var(--text-primary)', marginLeft: '0.5rem' }}>
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
           </div>
 
         </div>

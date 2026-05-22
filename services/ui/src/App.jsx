@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
@@ -12,10 +12,19 @@ import CommentsPage from './pages/CommentsPage';
 import AgentChatbot from './components/AgentChatbot';
 
 function App() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   return (
     <>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route path="/" element={<Layout toggleTheme={toggleTheme} theme={theme} />}>
           <Route index element={<HomePage />} />
           <Route path="search" element={<SearchResultsPage />} />
           <Route path="explore" element={<ExplorePage />} />
