@@ -1,7 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import SearchBar from '../components/search/SearchBar';
 
 export default function HomePage() {
+  const navigate = useNavigate();
+
   return (
     <div>
       {/* Hero Section */}
@@ -30,10 +33,10 @@ export default function HomePage() {
 
         <div className="container" style={{ width: '100%' }}>
           <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <h1 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.1 }}>
-              Find Your Perfect <span style={{ color: 'transparent', WebkitBackgroundClip: 'text', backgroundImage: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))' }}>Stay</span>
+            <h1 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.1, color: '#ffffff' }}>
+              Find Your Perfect <span style={{ color: 'var(--accent-primary)' }}>Stay</span>
             </h1>
-            <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', marginBottom: '3rem' }}>
+            <p style={{ fontSize: '1.2rem', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '3rem' }}>
               Book premium hotels worldwide. Enjoy exclusive discounts and AI-powered recommendations.
             </p>
             
@@ -47,8 +50,13 @@ export default function HomePage() {
         <div className="container">
           <h2 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Featured Destinations</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-            {['Rome', 'Paris', 'Tokyo', 'New York'].map((city, i) => (
-              <div key={city} className="glass" style={{ overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s', padding: 0 }}>
+            {['Rome', 'Paris', 'Tokyo', 'New York', 'Istanbul', 'Los Angeles'].map((city, i) => (
+              <div 
+                key={city} 
+                className="glass hover-card" 
+                onClick={() => navigate(`/search?location=${encodeURIComponent(city)}`)}
+                style={{ overflow: 'hidden', cursor: 'pointer', padding: 0 }}
+              >
                 <img 
                   src={`https://source.unsplash.com/featured/?${city.toLowerCase()},city`} 
                   alt={city}
