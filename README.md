@@ -2,18 +2,20 @@
 
 ![Hotello Cover Image](./hotello.png)
 
-**Watch the Demo Video:** [https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing](https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing)
-
-### 🌍 Live Deployments
+**Frontend & Presentation**
 *   **Website (UI)**: [https://hotello-cnxn.onrender.com](https://hotello-cnxn.onrender.com)
+*   **Demo Video**: [Google Drive Link](https://drive.google.com/drive/folders/1KzYstbnYhXSYW4l81bVvPUl99Wxmip4V?usp=sharing)
+
+**Backend Microservices**
 *   **API Gateway**: [https://hotello-gateway.onrender.com](https://hotello-gateway.onrender.com)
 *   **Hotel Service**: [https://hotello-2u5v.onrender.com](https://hotello-2u5v.onrender.com)
 *   **Comments Service**: [https://hotello-comments-service.onrender.com](https://hotello-comments-service.onrender.com)
 *   **Agent Service**: [https://hotello-agent-service.onrender.com](https://hotello-agent-service.onrender.com)
+*   **Notification Worker**: [https://hotello-6qed.onrender.com](https://hotello-6qed.onrender.com)
 
 ---
 
-Hotello is a highly scalable, microservice-based hotel booking platform built for the SE4458 assignment. It demonstrates enterprise-grade architectural patterns, including a custom API Gateway, distributed polyglot persistence (SQL + NoSQL), distributed caching, asynchronous message queuing, and an autonomous AI Agent that utilizes server-side function calling to interact with the platform on behalf of the user.
+Hotello is a highly scalable, microservice-based hotel booking platform. It demonstrates enterprise-grade architectural patterns, including a custom API Gateway, distributed polyglot persistence (SQL + NoSQL), distributed caching, asynchronous message queuing, and an autonomous AI Agent that utilizes server-side function calling to interact with the platform on behalf of the user.
 
 ---
 
@@ -24,6 +26,7 @@ Hotello is a highly scalable, microservice-based hotel booking platform built fo
 *   **Polyglot Persistence**: 
     *   **PostgreSQL (Supabase)** for strictly structured, ACID-compliant relational data (Reservations, Availability).
     *   **MongoDB Atlas** for unstructured, high-throughput document data (User Reviews and Comments).
+    *   **Supabase Storage (CDN)** for hosting public binary image blobs (Hotel cards, destination previews) seamlessly linked to the relational schema.
 *   **Distributed Caching**: Upstash Redis Cloud caching for heavy read-operations (Hotel details, JWT sessions) with strict invalidation upon booking.
 *   **Asynchronous Message Queuing**: CloudAMQP (RabbitMQ) decouples booking transactions from notification/logging processing to ensure zero-blocking API responses.
 *   **Secure API Gateway**: Centralized proxy handling JWT authentication, request routing, and Redis-backed Rate Limiting to prevent DDoS.
