@@ -54,15 +54,16 @@ export default function AgentChatbot() {
       <button 
         onClick={toggleChat}
         style={{
-          position: 'fixed', bottom: '20px', right: '20px',
-          width: '60px', height: '60px', borderRadius: '50%',
+          position: 'fixed', bottom: '40px', right: '40px',
+          height: '64px', padding: '0 24px', borderRadius: '32px',
           backgroundColor: 'var(--primary)', color: 'var(--text-primary)',
-          border: 'none', cursor: 'pointer', fontSize: '24px',
+          border: '2px solid var(--text-primary)', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold',
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px'
         }}
       >
-        💬
+        <span style={{ fontSize: '28px' }}>💬</span>
+        AI Agent
       </button>
     );
   }
