@@ -4,6 +4,7 @@ import amqp from 'amqplib';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import { Resend } from 'resend';
 
 dotenv.config();
 
@@ -12,6 +13,162 @@ const PORT = process.env.PORT || 3003;
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
+
+// Initialize Resend Client
+const resend = new Resend(process.env.RESEND_API_KEY || 're_RjGg4waG_8hFS6L1uWEECAsrk5pqk2n28');
+
+// Helper to send Reservation confirmation email
+async function sendReservationEmail(payload) {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const toEmail = payload.userEmail;
+
+  console.log(`[EMAIL SENDING] Initiating Resend dispatch to ${toEmail} from ${fromEmail}...`);
+
+  const htmlContent = `
+    <div style="background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 40px 20px; min-height: 100vh;">
+      <div style="max-width: 600px; margin: 0 auto; background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 40px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);">
+        
+        <!-- Header with beautiful gradient -->
+        <div style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 32px;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.025em; color: #ffffff;">Stay Confirmed! 🎉</h1>
+          <p style="margin: 8px 0 0 0; font-size: 16px; color: #e2e8f0; opacity: 0.9;">Your reservation is secured at ${payload.hotelName}</p>
+        </div>
+
+        <!-- Stay Summary Card -->
+        <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 24px; margin-bottom: 32px;">
+          <h3 style="margin-top: 0; color: #a855f7; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">Reservation Details</h3>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <td style="padding: 12px 0; color: #94a3b8;">Reservation ID:</td>
+              <td style="padding: 12px 0; text-align: right; font-family: monospace; color: #f8fafc; font-weight: 600;">#${payload.reservationId}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <td style="padding: 12px 0; color: #94a3b8;">Guest Email:</td>
+              <td style="padding: 12px 0; text-align: right; color: #6366f1; font-weight: 600;">${payload.userEmail}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <td style="padding: 12px 0; color: #94a3b8;">Check-In Date:</td>
+              <td style="padding: 12px 0; text-align: right; color: #f8fafc; font-weight: 600;">${payload.checkIn}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <td style="padding: 12px 0; color: #94a3b8;">Check-Out Date:</td>
+              <td style="padding: 12px 0; text-align: right; color: #f8fafc; font-weight: 600;">${payload.checkOut}</td>
+            </tr>
+            <tr>
+              <td style="padding: 16px 0 0 0; color: #94a3b8; font-size: 16px; font-weight: 600;">Total Amount Paid:</td>
+              <td style="padding: 16px 0 0 0; text-align: right; color: #34d399; font-size: 20px; font-weight: 700;">$${payload.totalPrice}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin-bottom: 32px;">
+          <a href="${process.env.BASE_URL || 'http://localhost:5173'}/profile" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
+            View My Reservations
+          </a>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 24px; text-align: center; font-size: 12px; color: #64748b;">
+          <p style="margin: 0 0 8px 0;">Thank you for choosing Hotello, your next-generation luxury AI hotel assistant.</p>
+          <p style="margin: 0;">&copy; 2026 Hotello Inc. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: toEmail,
+      subject: `Booking Confirmed: Stay at ${payload.hotelName}`,
+      html: htmlContent
+    });
+
+    if (error) {
+      console.error(`[EMAIL ERROR] Resend rejected dispatch to ${toEmail}:`, error);
+    } else {
+      console.log(`[EMAIL SENT] Successfully sent email to ${toEmail} using Resend! ID: ${data?.id}`);
+    }
+  } catch (err) {
+    console.error(`[EMAIL ERROR] Direct error while sending reservation email to ${toEmail}:`, err.message);
+  }
+}
+
+// Helper to send Room Capacity Warning alerts to Admins
+async function sendCapacityAlertEmail(adminEmail, rt) {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+  console.log(`[EMAIL SENDING] Dispatched capacity alert for RoomType #${rt.id} to admin ${adminEmail}...`);
+
+  const htmlContent = `
+    <div style="background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; padding: 40px 20px; min-height: 100vh;">
+      <div style="max-width: 600px; margin: 0 auto; background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 40px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);">
+        
+        <!-- Header with Warning design -->
+        <div style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 32px;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.025em; color: #ffffff;">⚠️ Capacity Alert</h1>
+          <p style="margin: 8px 0 0 0; font-size: 16px; color: #e2e8f0; opacity: 0.9;">Room type is running low on availability (< 20%)!</p>
+        </div>
+
+        <!-- Alert Details Card -->
+        <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 24px; margin-bottom: 32px;">
+          <h3 style="margin-top: 0; color: #f97316; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">System Audit Details</h3>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <td style="padding: 12px 0; color: #94a3b8;">Hotel ID:</td>
+              <td style="padding: 12px 0; text-align: right; color: #f8fafc; font-weight: 600;">#${rt.hotel_id}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <td style="padding: 12px 0; color: #94a3b8;">Room Type ID:</td>
+              <td style="padding: 12px 0; text-align: right; color: #f8fafc; font-weight: 600;">#${rt.id}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <td style="padding: 12px 0; color: #94a3b8;">Time Window:</td>
+              <td style="padding: 12px 0; text-align: right; color: #f8fafc; font-weight: 600;">Next 30 Days</td>
+            </tr>
+            <tr>
+              <td style="padding: 16px 0 0 0; color: #94a3b8; font-size: 16px; font-weight: 600;">Availability Status:</td>
+              <td style="padding: 16px 0 0 0; text-align: right; color: #ef4444; font-size: 18px; font-weight: 700;">&lt; 20% Remaining</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Action Button -->
+        <div style="text-align: center; margin-bottom: 32px;">
+          <a href="${process.env.BASE_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">
+            Manage All Inventory
+          </a>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 24px; text-align: center; font-size: 12px; color: #64748b;">
+          <p style="margin: 0 0 8px 0;">This email is an automated alert generated by Hotello Capacity Audit System.</p>
+          <p style="margin: 0;">&copy; 2026 Hotello Inc. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: adminEmail,
+      subject: `⚠️ Capacity Warning: Hotello Inventory Low`,
+      html: htmlContent
+    });
+
+    if (error) {
+      console.error(`[EMAIL ERROR] Resend rejected admin capacity alert to ${adminEmail}:`, error);
+    } else {
+      console.log(`[EMAIL SENT] Successfully sent capacity warning to ${adminEmail} using Resend! ID: ${data?.id}`);
+    }
+  } catch (err) {
+    console.error(`[EMAIL ERROR] Direct error while sending capacity warning to ${adminEmail}:`, err.message);
+  }
+}
 
 // 1. Supabase Client Setup (Requires Supabase service role for admin profiles reading/admin actions)
 const supabase = createClient(
@@ -33,11 +190,11 @@ async function startQueueListener() {
 
     console.log('[WORKER] Standing by for new reservations on RabbitMQ queue...');
 
-    channel.consume('reservation_notifications', (msg) => {
+    channel.consume('reservation_notifications', async (msg) => {
       if (msg !== null) {
         try {
           const payload = JSON.parse(msg.content.toString());
-          console.log(`[ALERT/EMAIL] Sending reservation email to ${payload.userEmail} for stay at ${payload.hotelName}. Total: $${payload.totalPrice}`);
+          await sendReservationEmail(payload);
           channel.ack(msg);
         } catch (err) {
           console.error('[WORKER] Error processing message from queue:', err);
@@ -86,7 +243,7 @@ app.post('/api/v1/notifications/process-queue', async (req, res) => {
     
     while (msg !== false) {
       const payload = JSON.parse(msg.content.toString());
-      console.log(`[SCHEDULED CRON] Processing reservation email to ${payload.userEmail} for stay at ${payload.hotelName}. Total: $${payload.totalPrice}`);
+      await sendReservationEmail(payload);
       channel.ack(msg);
       processedCount++;
       
@@ -189,8 +346,7 @@ app.post('/api/v1/notifications/capacity-check', async (req, res) => {
           .single();
 
         if (adminProfile?.email) {
-          // In a real app, send an email via Resend, SendGrid, etc.
-          console.log(`[ALERT] Low capacity on RoomType ${rt.id} (< 20%) for the next month. Admin email: ${adminProfile.email}`);
+          await sendCapacityAlertEmail(adminProfile.email, rt);
           notificationsSent.push({ hotelId: rt.hotel_id, email: adminProfile.email });
         }
       }
