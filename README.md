@@ -58,6 +58,7 @@ Hotello is a highly scalable, microservice-based hotel booking platform. It demo
 *   **Docker & Docker Compose**: Containerization for local development and parity with production.
 *   **Render**: Cloud platform hosting the decentralized microservices and static frontend.
 *   **CloudAMQP**: Fully managed RabbitMQ cluster.
+*   **Azure Logic Apps**: Serverless scheduling for automated capacity audits and queue processing.
 
 ---
 
@@ -192,7 +193,98 @@ sequenceDiagram
 
 ---
 
+## 🗄️ ER Diagram
+
+```mermaid
+erDiagram
+    user_profiles ||--o{ hotels : "owns (admin)"
+    user_profiles ||--o{ reservations : "makes"
+    hotels ||--o{ room_types : "has"
+    hotels ||--o{ reservations : "receives"
+    room_types ||--o{ room_availability : "tracks"
+    room_types ||--o{ reservations : "booked in"
+
+    user_profiles {
+        uuid id PK "References auth.users"
+        string full_name
+        string role "user | admin"
+        string email
+    }
+    hotels {
+        uuid id PK
+        string name
+        string city
+        string country
+        int star_rating
+        uuid admin_id FK
+    }
+    room_types {
+        uuid id PK
+        uuid hotel_id FK
+        string name
+        int capacity
+        decimal price_per_night
+        int total_rooms
+    }
+    room_availability {
+        uuid id PK
+        uuid room_type_id FK
+        date date
+        int available_count
+        boolean is_available
+    }
+    reservations {
+        uuid id PK
+        uuid user_id FK
+        uuid hotel_id FK
+        uuid room_type_id FK
+        date check_in
+        date check_out
+        int guests
+        string guest_name
+        string guest_email
+        string status
+    }
+```
+*(Note: Comments are stored separately in MongoDB).*
+
+---
+
+## 🧠 Design Decisions, Assumptions & Issues Encountered
+
+### Design Decisions
+*   **Polyglot Persistence**: We intentionally split data across three platforms. PostgreSQL (Supabase) handles strict ACID transactions for reservations. MongoDB handles high-volume, unstructured text data (reviews) to prevent locking relational tables. Redis handles high-speed read caching.
+*   **Atomic Booking RPC**: To completely eliminate race conditions and double-booking, the reservation logic is pushed down to the database layer via a PostgreSQL Stored Procedure (`book_room`) utilizing `FOR UPDATE` row-level locks.
+*   **Event-Driven Notifications**: We used RabbitMQ to decouple the blocking nature of email/notification delivery from the strict atomic booking transaction, ensuring zero-latency API responses for the end user.
+*   **Centralized API Gateway**: Implemented the Gateway pattern to centralize JWT validation, Redis rate-limiting, and reverse-proxying. This allows internal microservices to focus purely on business logic.
+*   **Dynamic Tool Registration**: The AI Agent's tool capabilities are not hardcoded. We implemented a file-based `ToolRegistry` using Zod schemas, which allows adding new capabilities to the LLM by simply dropping a new file in the tools folder.
+*   **Graceful Degradation (Rate Limiting)**: Designed the API Gateway to seamlessly fall back to an in-memory rate limiter if the Redis instance becomes temporarily unavailable, ensuring endpoints remain protected from DDoS.
+
+### Assumptions
+*   **Trusted Internal Network**: We assumed the API Gateway acts as a Zero-Trust boundary. Internal microservices trust requests routed from the Gateway, though PostgreSQL Row Level Security (RLS) is still enforced as defense-in-depth.
+*   **Serverless Cron Triggering**: We assumed that background audits (like the 20% capacity check) are best triggered passively via external cron jobs (Azure Logic Apps) rather than keeping persistent `setInterval` loops running in Node.js, which prevents memory bloat.
+*   **Admin Ownership**: We modeled the system assuming a 1-to-1 or 1-to-many relationship where a single `admin_id` (tied to a Supabase User) owns and manages specific hotel inventories.
+*   **Synchronous LLM Execution**: We assumed the UI can wait for standard HTTP requests to finish while the Agent executes multi-hop backend function calls, opting against complex WebSocket streaming for V1.
+
+### Issues Encountered & Resolved
+*   **AI Agent Rate Limiting**: 
+    *   *Issue*: During testing, the Google Gemini API frequently triggered `429 Too Many Requests` due to free-tier constraints during complex tool-calling loops.
+    *   *Solution*: Migrated the `agent-service` orchestrator to the **Cerebras Cloud SDK** using the `gpt-oss-120b` model, resulting in significantly faster inference and bypassing the rate limits.
+*   **Docker vs Host DNS Resolution in Frontend**:
+    *   *Issue*: The Vite frontend proxy encountered `net::ERR_NAME_NOT_RESOLVED` when the browser tried to hit `http://gateway:3000` directly, as `gateway` is a Docker-internal network alias unresolvable by the host machine's browser.
+    *   *Solution*: Refactored `docker-compose.yml` and startup scripts to explicitly inject `VITE_GATEWAY_URL=http://localhost:3000`, ensuring the client-side fetch requests route correctly through the host's port bindings.
+*   **Stale Cache Reads**: 
+    *   *Issue*: After a room was booked, the UI would sometimes still show the old availability count due to Redis caching.
+    *   *Solution*: Implemented explicit `redis.del()` invalidation hooks on the `search:*` and `hotel:details:*` wildcard keys immediately upon a successful reservation commit.
+*   **Database Schema Drift**:
+    *   *Issue*: The original SQL schema incorrectly included a relational `comments` table, violating the polyglot persistence design.
+    *   *Solution*: Dropped the relational comments table to strictly isolate review logic to MongoDB.
+
+---
+
 ## 🏛️ Service Details
+
+
 
 ### 1. API Gateway (`services/gateway`)
 The central nervous system and zero-trust barrier of the application. Built with Node.js and Express, it is the *only* backend service exposed to the public internet.
@@ -275,63 +367,6 @@ All external requests hit the API Gateway, which forwards them to the underlying
 The decoupled nature of Hotello allows for seamless horizontal scaling:
 *   **Load Balancing**: If search traffic spikes, we can spin up multiple instances of the `Hotel Service` behind a round-robin load balancer without needing to scale the `Comments Service`.
 *   **Event Sourcing Expansion**: The RabbitMQ integration currently handles notifications, but it is primed for Event Sourcing. Future workers could consume `reservation.created` events to sync data to a Data Warehouse (e.g., Snowflake) for business intelligence without touching the core transactional database.
-
----
-
-## 🗄️ ER Diagram
-
-```mermaid
-erDiagram
-    user_profiles ||--o{ hotels : "owns (admin)"
-    user_profiles ||--o{ reservations : "makes"
-    hotels ||--o{ room_types : "has"
-    hotels ||--o{ reservations : "receives"
-    room_types ||--o{ room_availability : "tracks"
-    room_types ||--o{ reservations : "booked in"
-
-    user_profiles {
-        uuid id PK "References auth.users"
-        string full_name
-        string role "user | admin"
-        string email
-    }
-    hotels {
-        uuid id PK
-        string name
-        string city
-        string country
-        int star_rating
-        uuid admin_id FK
-    }
-    room_types {
-        uuid id PK
-        uuid hotel_id FK
-        string name
-        int capacity
-        decimal price_per_night
-        int total_rooms
-    }
-    room_availability {
-        uuid id PK
-        uuid room_type_id FK
-        date date
-        int available_count
-        boolean is_available
-    }
-    reservations {
-        uuid id PK
-        uuid user_id FK
-        uuid hotel_id FK
-        uuid room_type_id FK
-        date check_in
-        date check_out
-        int guests
-        string guest_name
-        string guest_email
-        string status
-    }
-```
-*(Note: Comments are stored separately in MongoDB).*
 
 ---
 
