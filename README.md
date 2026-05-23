@@ -48,6 +48,7 @@ Hotello is a highly scalable, microservice-based hotel booking platform. It demo
 *   **http-proxy-middleware**: Request routing within the API Gateway.
 *   **amqplib**: RabbitMQ integration for event-driven messaging.
 *   **Cerebras Cloud SDK**: Ultra-fast LLM integration for the Agent Service.
+*   **Resend Node SDK**: Modern transactional email delivery for reservation alerts.
 
 ### Databases & Caching
 *   **Supabase (PostgreSQL)**: Relational data, Row Level Security (RLS), and JSON Web Token (JWT) Authentication.
@@ -153,7 +154,7 @@ sequenceDiagram
     %% Asynchronous Processing
     MQ->>Worker: Consume Event Message
     activate Worker
-    Worker->>Worker: Parse Payload & Simulate Email
+    Worker->>Worker: Parse Payload & Dispatch Resend Email API
     Worker-->>MQ: Ack Message
     deactivate Worker
 ```
@@ -400,6 +401,10 @@ CEREBRAS_API_KEY=your-cerebras-key
 
 # Google Gemini AI (Optional Fallback)
 GEMINI_API_KEY=your-gemini-key
+
+# Resend Transactional Email API
+RESEND_API_KEY=your-resend-key
+RESEND_FROM_EMAIL=onboarding@resend.dev
 ```
 
 ### 2. Run the Stack
